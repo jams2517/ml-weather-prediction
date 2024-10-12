@@ -1,88 +1,85 @@
-from flask import Flask, request, render_template
-import numpy as np
-import pickle
+from flask import Flask, render_template, request
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, f1_score
 
 app = Flask(__name__)
 
-# Load the dataset and preprocess
-def load_and_train_model():
-    # Load dataset
-    file_path = 'data/DailyDelhiClimateTrain.csv'
-    data = pd.read_csv(file_path)
+# Load your dataset
+train_data_path = 'data/train.csv'  # Path to your training data
+test_data_path = 'data/test.csv'    # Path to your testing data
 
-    # Create labels for weather conditions based on feature thresholds
-    conditions = []
-    for i, row in data.iterrows():
-        if row['humidity'] > 80:
-            conditions.append(1)  # Rainy
-        elif row['wind_speed'] > 5:
-            conditions.append(2)  # Windy
-        elif row['meantemp'] > 30:
-            conditions.append(0)  # Sunny
-        else:
-            conditions.append(3)  # Humid
+# Load training and testing datasets
+train_df = pd.read_csv(train_data_path)
+print("Training Data Columns:", train_df.columns)  # Check the columns in your dataset
 
-    data['condition'] = conditions
+# Define a function to categorize the weather condition
+def categorize_weather(temperature, humidity, wind_speed):
+    if humidity > 70:
+        return 2  # Rainy
+    elif wind_speed > 10:
+        return 1  # Windy
+    elif temperature > 25:
+        return 0  # Sunny
+    else:
+        return 3  # Humid
 
-    # Features and target variable
-    X = data[['meantemp', 'humidity', 'wind_speed', 'meanpressure']]
-    y = data['condition']
+# Apply the categorization function to create a new column
+train_df['weather_category'] = train_df.apply(
+    lambda row: categorize_weather(row['meantemp'], row['humidity'], row['wind_speed']), axis=1)
 
-    # Split the data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Prepare the features and target variable
+X_train = train_df[['humidity', 'wind_speed', 'meanpressure']]  # Update based on your dataset
+y_train = train_df['weather_category']
 
-    # Scale the data
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+# Scale features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
 
-    # Train the model
-    model = LogisticRegression(max_iter=200)
-    model.fit(X_train_scaled, y_train)
+# Initialize and train the logistic regression model
+model = LogisticRegression()
+model.fit(X_train_scaled, y_train)
 
-    # Save the model and scaler
-    with open('weather_model.pkl', 'wb') as f:
-        pickle.dump(model, f)
-    with open('scaler.pkl', 'wb') as f:
-        pickle.dump(scaler, f)
+# After fitting the model
+y_train_pred = model.predict(X_train_scaled)
 
-    return model, scaler
+# Calculate accuracy
+accuracy = accuracy_score(y_train, y_train_pred)
+print(f"Training Accuracy: {accuracy:.2f}")
 
-# Load the model and scaler
-model, scaler = load_and_train_model()
+# Calculate F1 score
+f1 = f1_score(y_train, y_train_pred, average='weighted')  # You can also use 'macro' or 'micro' depending on your needs
+print(f"Training F1 Score: {f1:.2f}")
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def home():
     return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    try:
-        # Get the inputs
-        temp = float(request.form['temperature'])
-        humidity = float(request.form['humidity'])
-        wind_speed = float(request.form['wind_speed'])
-        precipitation = float(request.form['precipitation'])  # Treat as pressure since precipitation is absent
+    # Get values from the form
+    temperature = float(request.form['temperature'])
+    humidity = float(request.form['humidity'])
+    wind_speed = float(request.form['wind_speed'])
+    pressure = float(request.form['precipitation'])
 
-        # Scale the inputs
-        inputs = np.array([[temp, humidity, wind_speed, precipitation]])
-        inputs_scaled = scaler.transform(inputs)
+    # Prepare the input features for prediction (must match the trained model features)
+    input_features = scaler.transform([[humidity, wind_speed, pressure]])  # Ensure correct order
 
-        # Predict the weather
-        prediction = model.predict(inputs_scaled)
-        
-        # Map prediction to readable format
-        weather_conditions = {0: "Sunny", 1: "Rainy", 2: "Windy", 3: "Humid"}  # Example mapping
-        result = weather_conditions.get(prediction[0], "Unknown")  # Use .get to avoid KeyError
+    # Make prediction
+    prediction = model.predict(input_features)[0]
 
-        return render_template('index.html', prediction=result)
+    # Map the prediction to weather conditions
+    weather_conditions = {
+        0: 'Sunny',
+        1: 'Windy',
+        2: 'Rainy',
+        3: 'Humid'
+    }
+    predicted_condition = weather_conditions.get(prediction, "Unknown")
 
-    except Exception as e:
-        return render_template('index.html', prediction="Error: " + str(e))
+    return render_template('index.html', prediction=predicted_condition)
 
 if __name__ == '__main__':
     app.run(debug=True)
