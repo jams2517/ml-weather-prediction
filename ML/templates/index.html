@@ -7,61 +7,104 @@
     <title>Weather Condition Predictor</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: 'Roboto', sans-serif;
-            background-image: url("/static/weather_background.jpg");
-            background-size: cover;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            padding: 20px;
+            transition: background 0.5s ease;
+            background-color: #f0e6ef;
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
         }
         .container {
-            background-color: rgba(255, 255, 255, 0.8);
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
             padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-            width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            z-index: 1;
         }
         h1 {
             text-align: center;
-            color: #2C3E50;
+            color: #5d4e60;
+            margin-bottom: 30px;
+            font-weight: 700;
         }
-        form {
-            display: flex;
-            flex-direction: column;
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
         label {
-            margin-top: 10px;
-            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+            color: #5d4e60;
+            font-weight: 600;
         }
-        input[type="text"], input[type="number"] {
+        input[type="number"] {
+            width: 100%;
             padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
+            border: 1px solid #d4c1d2;
             border-radius: 5px;
             font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #9b8aa0;
         }
         button {
-            background-color: #3498DB;
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #9b8aa0;
             color: white;
-            padding: 10px;
-            margin-top: 20px;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         button:hover {
-            background-color: #2980B9;
+            background-color: #7d6d82;
         }
-        .result {
-            margin-top: 20px;
+        #result {
             text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            color: #2C3E50;
+            font-size: 24px;
+            font-weight: 600;
+            color: #5d4e60;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .weather-icon {
+            font-size: 48px;
+            margin-right: 10px;
+            vertical-align: middle;
         }
     </style>
 </head>
@@ -70,22 +113,29 @@
 <div class="container">
     <h1>Predict Weather Condition</h1>
     <form action="/predict" method="POST">
-        <label for="temperature">Temperature (°C):</label>
-        <input type="number" step="0.1" id="temperature" name="temperature" required>
-
-        <label for="humidity">Humidity (%):</label>
-        <input type="number" step="0.1" id="humidity" name="humidity" required>
-
-        <label for="wind_speed">Wind Speed (m/s):</label>
-        <input type="number" step="0.1" id="wind_speed" name="wind_speed" required>
-
-        <label for="precipitation">Pressure (hPa):</label>
-        <input type="number" step="0.1" id="precipitation" name="precipitation" required>
+        <div class="card-grid">
+            <div class="card">
+                <label for="temperature">Temperature (°C)</label>
+                <input type="number" id="temperature" name="temperature" step="0.1" required>
+            </div>
+            <div class="card">
+                <label for="humidity">Humidity (%)</label>
+                <input type="number" id="humidity" name="humidity" step="0.1" required>
+            </div>
+            <div class="card">
+                <label for="windSpeed">Wind Speed (m/s)</label>
+                <input type="number" id="windSpeed" name="wind_speed" step="0.1" required>
+            </div>
+            <div class="card">
+                <label for="pressure">Pressure (hPa)</label>
+                <input type="number" id="pressure" name="precipitation" step="0.1" required>
+            </div>
+        </div>
 
         <button type="submit">Predict</button>
     </form>
 
-    <div class="result">
+    <div id="result">
         {% if prediction %}
             <p>Predicted Weather Condition: {{ prediction }}</p>
         {% endif %}
